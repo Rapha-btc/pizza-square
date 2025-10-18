@@ -63,11 +63,12 @@
 (define-constant ERR_FREEMINT_ENDED (err u3001))
 (define-constant ERR_ALREADY_MINTED (err u3002))
 (define-constant ERR_TOKEN_NOT_ALLOWED (err u3003))
-
+(define-constant ERR_ENFORCE_ROYALTIES (err u3004))
 
 
 ;; Base uri string to fetch metadata
 (define-data-var base-uri (string-ascii 80) "https://memecoinstx.com/metadata/GGTV/")
+(define-data-var gated bool true)
 
 ;; Contract mapping
 (define-map BALANCE principal uint)
@@ -105,7 +106,7 @@
     (owner (unwrap-panic (unwrap! (get-owner id) ERR_NOT_MINTED)))
   )
     (asserts! (is-eq tx-sender owner) ERR_NOT_TOKEN_OWNER)
-    ;; (asserts! (is-approved tx-sender) ERR_PLEASE_RESPECT_ROYALTIES)
+    (and (var-get gated) (asserts! (is-approved-caller) ERR_ENFORCE_ROYALTIES))
     (map-delete MARKET id)
     ;; Increase the wallet balance
     (add-one recipient)
@@ -716,4 +717,39 @@
 ;; Read-only. Get the Marketplace allowed tokens
 (define-read-only (is-token-allowed (address principal))
   (default-to false (map-get? MARKETPLACE_TOKENS address))
+)
+
+;; In contract enforced royalty
+(define-map approved-callers principal bool)
+
+(define-public (approve-caller (caller principal))
+  (begin
+    (asserts! (is-eq (some tx-sender) CONTRACT_OWNER) ERR_NOT_AUTHORIZED)
+    (ok (map-set approved-callers caller true))
+  )
+)
+
+(define-public (revoke-caller (caller principal))
+  (begin
+    (asserts! (is-eq (some tx-sender) CONTRACT_OWNER) ERR_NOT_AUTHORIZED)
+    (ok (map-set approved-callers caller false))
+  )
+)
+
+(define-private (is-approved-caller)
+  (or
+    (is-eq tx-sender contract-caller) 
+    (default-to false (map-get? approved-callers contract-caller)) 
+  )
+)
+
+(define-public (set-gated (enabled bool))
+  (begin
+    (asserts! (is-eq (some tx-sender) CONTRACT_OWNER) ERR_NOT_AUTHORIZED)
+    (ok (var-set gated enabled))
+  )
+)
+
+(define-read-only (is-gated)
+  (var-get gated)
 )
