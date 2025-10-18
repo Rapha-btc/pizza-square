@@ -10,6 +10,8 @@
 (define-constant ERR-NOT-OWNER u402) 
 (define-constant ERR-WRONG-FT-OUT u403) 
 (define-constant ERR_INVALID_OWNER_TYPE u404) 
+(define-constant ERR_ENFORCE_ROYALTIES u405) 
+(define-constant ERR-SLIPPAGE u406) 
 
 (define-fungible-token PIZZA MAX)
 
@@ -26,7 +28,7 @@
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
     (begin
        (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
-       (and (var-get gated) (asserts! (is-approved-recipient recipient) ERR_ENFORCE_ROYALTIES))
+       (and (var-get gated) (asserts! (is-approved-recipient recipient) (err ERR_ENFORCE_ROYALTIES)))
        (match (ft-transfer? PIZZA amount sender recipient)
           response (begin
             (print memo)
@@ -39,25 +41,28 @@
 ;; we need a new dex-trait with new signature here
 (define-public (sell-transfer
     (amount-in uint)
+    (ft-in <token-trait>)
     (sender principal)
     (recipient <dex-trait>) 
     (min-amount-out (optional uint))
     (ft-out <token-trait>))
     (let ((dex-contract (contract-of recipient))
-          (info (try! (contract-call? recipient sell SELF amount-in))) ;; maybe this also spits out ft-out-contract
+          (info (try! (contract-call? recipient sell ft-in amount-in))) ;; maybe this also spits out ft-out-contract
           (ubtc-out (get ubtc-out info))
           (ft-contract-out (get ft info))
+          (min-out (default-to u0 min-amount-out))
           (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
         (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
-        (asserts! (is-eq (contract-of ft-out) ft-contract-out) ERR-WRONG-FT-OUT)
-        (asserts! (>= ubtc-out min-amount-out) ERR-SLIPPAGE)
+        (asserts! (is-eq (contract-of ft-in) SELF) (err ERR-WRONG-FT-OUT))
+        (asserts! (is-eq (contract-of ft-out) ft-contract-out) (err ERR-WRONG-FT-OUT))
+        (asserts! (>= ubtc-out min-out) (err ERR-SLIPPAGE))
         (try! (ft-transfer? PIZZA amount-in sender dex-contract))
         (try! (contract-call? ft-out transfer royal-amt sender (var-get contract-owner) none))
     (print {
         type: "sell",
         sender: sender,
         token-in: SELF,
-        amount-in: amount,
+        amount-in: amount-in,
         token-out: ft-out,
         amount-out: ubtc-out,
         royalty: royal-amt,
@@ -156,28 +161,28 @@
 (define-public (approve-recipient (recipient principal))
 ;; in map or not a contract using destruct
   (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err ERR-NOT-AUTHORIZED))
     (ok (map-set approved-recipients recipient true))
   )
 )
 
 (define-public (revoke-recipient (recipient principal))
   (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err ERR-NOT-AUTHORIZED))
     (ok (map-set approved-recipients recipient false))
   )
 )
 
 (define-private (is-approved-recipient (recipient principal))
   (or
-    (validate-not-a-contract recipient)
+    (is-ok (validate-not-a-contract recipient))
     (default-to false (map-get? approved-recipients recipient)) 
   )
 )
 
 (define-public (set-gated (enabled bool))
   (begin
-    (asserts! (is-eq tx-sender (var-get contract-owner)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err ERR-NOT-AUTHORIZED))
     (ok (var-set gated enabled))
   )
 )
@@ -190,7 +195,9 @@
   (let (
     (recipient-parts (unwrap-panic (principal-destruct? recipient)))
   )
-    (asserts! (is-none (get name recipient-parts)) ERR_INVALID_OWNER_TYPE)
-    (ok true)
+    (if (is-none (get name recipient-parts))
+      (ok true)  ;; Not a contract, return (ok true)
+      (err ERR_INVALID_OWNER_TYPE)  ;; Is a contract, return an error
+    )
   )
 )
