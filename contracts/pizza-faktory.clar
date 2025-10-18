@@ -4,11 +4,12 @@
 (impl-trait 'SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.faktory-trait-v1.sip-010-trait)
 (impl-trait 'SP29CK9990DQGE9RGTT1VEQTTYH8KY4E3JE5XP4EC.aibtcdev-dao-traits-v1.token)
 (use-trait token-trait 'SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.faktory-trait-v1.sip-010-trait)
-(use-trait dex-trait 'SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.faktory-dex-trait.dex-trait) 
+(use-trait dex-trait .faktory-dex-pizza-trait.dex-trait) 
 
 (define-constant ERR-NOT-AUTHORIZED u401)
 (define-constant ERR-NOT-OWNER u402) 
 (define-constant ERR-WRONG-FT-OUT u403) 
+(define-constant ERR_INVALID_OWNER_TYPE u404) 
 
 (define-fungible-token PIZZA MAX)
 
@@ -35,18 +36,21 @@
     )
 )
 
+;; we need a new dex-trait with new signature here
 (define-public (sell-transfer
-    (dex <dex-trait>)
     (amount-in uint)
+    (sender principal)
+    (recipient <dex-trait>) 
+    (min-amount-out (optional uint))
     (ft-out <token-trait>))
-    (let ((sender tx-sender)
-          (dex-contract (contract-of dex))
-          (info (try! (contract-call? dex sell SELF amount-in))) ;; maybe this also spits out ft-out-contract
+    (let ((dex-contract (contract-of recipient))
+          (info (try! (contract-call? recipient sell SELF amount-in))) ;; maybe this also spits out ft-out-contract
           (ubtc-out (get ubtc-out info))
-          (ft-out-contract (get ft info))
+          (ft-contract-out (get ft info))
           (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
         (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
-        (asserts! (is-eq (contract-of ft-out) ft-out-contract) ERR-WRONG-FT-OUT)
+        (asserts! (is-eq (contract-of ft-out) ft-contract-out) ERR-WRONG-FT-OUT)
+        (asserts! (>= ubtc-out min-amount-out) ERR-SLIPPAGE)
         (try! (ft-transfer? PIZZA amount-in sender dex-contract))
         (try! (contract-call? ft-out transfer royal-amt sender (var-get contract-owner) none))
     (print {
@@ -186,9 +190,7 @@
   (let (
     (recipient-parts (unwrap-panic (principal-destruct? recipient)))
   )
-    (begin
-      (asserts! (is-none (get name recipient-parts)) ERR_INVALID_OWNER_TYPE)
-      (ok true)
-    )
+    (asserts! (is-none (get name recipient-parts)) ERR_INVALID_OWNER_TYPE)
+    (ok true)
   )
 )

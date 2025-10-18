@@ -160,6 +160,8 @@
             )
         (asserts! (>= stx-out u4) ERR-AMOUNT-TOO-LOW)
         (asserts! (>= total-stx stx-out) ERR-STX-BALANCE-TOO-LOW)
+        ;; contract-caller must be token
+        (asserts! (is-eq TOKEN contract-caller) ERR_WRONG_TOKEN)
         ;; (try! (contract-call? ft transfer amount tx-sender (as-contract tx-sender) none))
         (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token 
                                   transfer stx-to-receiver tx-sender stx-receiver none)))
