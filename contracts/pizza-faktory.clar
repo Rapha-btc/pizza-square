@@ -11,6 +11,8 @@
 (define-constant ERR-WRONG-FT-OUT u403) 
 
 (define-fungible-token PIZZA MAX)
+
+(define-constant SELF (as-contract tx-sender))
 (define-constant MAX u100000000000000000)
 (define-constant ROYALTY u1000)u10000
 (define-constant PRECISION u10000)
