@@ -8,6 +8,8 @@ here's a simple way to accomplish this with Gamma's existing contract, without c
 
 The proposed strategy restricts NFT transfers to only allow direct peer-to-peer transfers (where contract-caller equals tx-sender) or transfers from explicitly allowlisted contracts, forcing marketplaces to use the built-in marketplace functions that enforce royalties. This approach directly controls the transfer mechanism rather than detecting sale patterns, giving the creator precise control over which platforms can interact with their NFTs. By implementing this restriction, creators can ensure royalties are always paid when their NFTs are sold through marketplaces while still allowing direct transfers between individuals.
 
+if you are a market place, therefore you are required to use the market place functions in the gamma contract which include artist royalty. note the artist can make exception if they want to do so. `(and (var-get gated) (asserts! (is-approved-caller) ERR_ENFORCE_ROYALTIES))`
+
 ## 2. One-Way Trustless Runes Bridge
 
 Clarity reads Bitcoin OP_RETURN data directly where Runes protocol encodes transfer amounts using varint. Users register Taproot-to-Stacks address mapping via dust transaction with OP_RETURN containing Stacks principal. Bridge mints wrapped Runes when transfers detected to registered addresses. Clarity acts as oracle through native Bitcoin state reading. No oracle other than Clarity for bridge-in. Implements tax-enforced wrapped tokens using code-body verification (from 1 above).
