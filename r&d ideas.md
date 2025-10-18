@@ -10,6 +10,8 @@ The proposed strategy restricts NFT transfers to only allow direct peer-to-peer 
 
 if you are a market place, therefore you are required to use the market place functions in the gamma contract which include artist royalty. note the artist can make exception if they want to do so. `(and (var-get gated) (asserts! (is-approved-caller) ERR_ENFORCE_ROYALTIES))`
 
+for ft like pizza, if the recipient is a contract, you cannot transfer PIZZA unless you use sell-transfer and pay 10% royalty
+
 ## 2. One-Way Trustless Runes Bridge
 
 Clarity reads Bitcoin OP_RETURN data directly where Runes protocol encodes transfer amounts using varint. Users register Taproot-to-Stacks address mapping via dust transaction with OP_RETURN containing Stacks principal. Bridge mints wrapped Runes when transfers detected to registered addresses. Clarity acts as oracle through native Bitcoin state reading. No oracle other than Clarity for bridge-in. Implements tax-enforced wrapped tokens using code-body verification (from 1 above).

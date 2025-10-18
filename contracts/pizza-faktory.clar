@@ -45,7 +45,8 @@
           (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
         (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
         (asserts! (is-eq (contract-of ft-out) ft-out-contract) ERR-WRONG-FT-OUT)
-        (try! (ft-transfer? PIZZA (- ubtc-out royal-amt) sender dex-contract))
+        (try! (ft-transfer? PIZZA amount-in sender dex-contract))
+        (try! (contract-call? ft-out transfer royal-amt sender (var-get contract-owner) none))
     (print {
         type: "sell",
         sender: sender,
