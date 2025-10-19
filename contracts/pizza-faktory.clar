@@ -47,11 +47,13 @@
     (min-amount-out (optional uint))
     (ft-out <token-trait>))
     (let ((dex-contract (contract-of recipient))
-          (info (try! (contract-call? recipient sell ft-in amount-in))) ;; maybe this also spits out ft-out-contract
+          (info (try! (contract-call? recipient sell ft-in amount-in))) 
           (ubtc-out (get ubtc-out info))
           (ft-contract-out (get ft info))
           (min-out (default-to u0 min-amount-out))
           (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
+        ;; here we maintain an allow list of dexes / pools 
+        ;; any dex / pool can allow itself if they pass contract-hash? verification
         (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
         (asserts! (is-eq (contract-of ft-in) SELF) (err ERR-WRONG-FT-OUT))
         (asserts! (is-eq (contract-of ft-out) ft-contract-out) (err ERR-WRONG-FT-OUT))
