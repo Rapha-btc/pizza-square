@@ -38,7 +38,7 @@
     )
 )
 
-;; we need a new dex-trait with new signature here
+;; Faktory Dex support
 (define-public (sell
     (amount-in uint)
     (ft-in <token-trait>)
@@ -70,6 +70,26 @@
         royalty: royal-amt,
         dex-contract: dex-contract })
     (ok ubtc-out))
+)
+
+;; Bitflow support -> if callable from Bitflow core requires new token trait!
+(define-public (pay-royalty (amount-in uint) (amount-out uint) (ft-out <token-trait>)) 
+    (let ((royal-amt (/ (* amount-out ROYALTY) PRECISION))) 
+                ;; here we maintain an allow list of dexes / pools 
+        ;; any dex / pool can allow itself if they pass contract-hash? verification
+        (try! (contract-call? ft-out transfer royal-amt tx-sender (var-get contract-owner) none))
+        (print {
+            type: "sell",
+            sender: tx-sender,
+            token-in: SELF,
+            amount-in: amount-in,
+            token-out: ft-out,
+            amount-out: amount-out,
+            royalty: royal-amt,
+            dex-contract: contract-caller
+        })
+        (ok royal-amt)
+    )
 )
 
 (define-public (set-token-uri (value (string-utf8 256)))

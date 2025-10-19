@@ -679,6 +679,9 @@
         
         ;; Transfer dx x tokens from pool-contract to caller 
         (try! (contract-call? pool-trait pool-transfer x-token-trait dx caller))
+
+        ;; Royalty suggestion by Rapha.btc
+        (try! (contract-call? y-token-trait pay-royalty dy dx x-token-trait))
         
         ;; Transfer y-amount-fees-protocol y tokens from caller to fee-address
         (if (> y-amount-fees-protocol u0)
