@@ -39,7 +39,7 @@
 )
 
 ;; we need a new dex-trait with new signature here
-(define-public (sell-transfer
+(define-public (sell
     (amount-in uint)
     (ft-in <token-trait>)
     (sender principal)
