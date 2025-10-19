@@ -160,11 +160,11 @@
             )
         (asserts! (>= stx-out u4) ERR-AMOUNT-TOO-LOW)
         (asserts! (>= total-stx stx-out) ERR-STX-BALANCE-TOO-LOW)
-        ;; contract-caller must be token
         (asserts! (is-eq TOKEN contract-caller) ERR_WRONG_TOKEN)
-        ;; (try! (contract-call? ft transfer amount tx-sender (as-contract tx-sender) none))
+        (try! (contract-call? ft transfer amount tx-sender (as-contract tx-sender) none))
         (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token 
                                   transfer stx-to-receiver tx-sender stx-receiver none)))
+        (try! (contract-call? ft pay-royalty amount stx-to-receiver 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token))
         (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token 
                                   transfer (- fee pre-fee) tx-sender FEE-RECEIVER none)))
         (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token 
@@ -176,7 +176,7 @@
                 stx-balance: new-stx, ft-balance: new-ft,
                 fee: fee,
                 open: true})
-        (ok {ubtc-out: stx-to-receiver, ft: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token}))))
+        (ok true))))
   
   (define-read-only (get-out (amount uint))
     (let ((total-stx (var-get stx-balance))

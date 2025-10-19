@@ -676,13 +676,14 @@
 
         ;; Transfer dy + y-amount-fees-provider y tokens from caller to pool-contract
         (try! (contract-call? y-token-trait transfer (+ dy y-amount-fees-provider) caller pool-contract none))
+        ;; Royalty suggestion by Rapha.btc // this works because pool-contract is gated by this core-v2
+        ;; Bitflow can have a marker to skip this royalty for token that aren't eligible
+        ;; if marker than below else true and continue
+        (try! (contract-call? y-token-trait pay-royalty dy dx x-token-trait))
         
         ;; Transfer dx x tokens from pool-contract to caller 
         (try! (contract-call? pool-trait pool-transfer x-token-trait dx caller))
 
-        ;; Royalty suggestion by Rapha.btc
-        (try! (contract-call? y-token-trait pay-royalty dy dx x-token-trait))
-        
         ;; Transfer y-amount-fees-protocol y tokens from caller to fee-address
         (if (> y-amount-fees-protocol u0)
         (try! (contract-call? y-token-trait transfer y-amount-fees-protocol caller fee-address none))

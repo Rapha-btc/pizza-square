@@ -315,8 +315,9 @@
   )
     (begin
       ;; Assert that caller is core address and core caller is contract deployer before setting vars
-      (asserts! (is-eq caller CORE_ADDRESS) ERR_NOT_AUTHORIZED)
-      (asserts! (is-eq core-caller CONTRACT_DEPLOYER) ERR_NOT_POOL_CONTRACT_DEPLOYER)
+      (asserts! (is-eq caller CORE_ADDRESS) ERR_NOT_AUTHORIZED) ; this is for the prints
+      (asserts! (is-eq core-caller CONTRACT_DEPLOYER) ERR_NOT_POOL_CONTRACT_DEPLOYER) ;; this can only be called in contract-deployer 
+      ;; and it's calling it once in the contract deployer
       (var-set pool-id id)
       (var-set pool-name name)
       (var-set pool-symbol symbol)

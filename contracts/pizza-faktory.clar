@@ -39,45 +39,49 @@
 )
 
 ;; Faktory Dex support
-(define-public (sell
-    (amount-in uint)
-    (ft-in <token-trait>)
-    (sender principal)
-    (recipient <dex-trait>) 
-    (min-amount-out (optional uint))
-    (ft-out <token-trait>))
-    (let ((dex-contract (contract-of recipient))
-          (info (try! (contract-call? recipient sell ft-in amount-in))) 
-          (ubtc-out (get ubtc-out info))
-          (ft-contract-out (get ft info))
-          (min-out (default-to u0 min-amount-out))
-          (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
-        ;; here we maintain an allow list of dexes / pools 
-        ;; any dex / pool can allow itself if they pass contract-hash? verification
-        (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
-        (asserts! (is-eq (contract-of ft-in) SELF) (err ERR-WRONG-FT-OUT))
-        (asserts! (is-eq (contract-of ft-out) ft-contract-out) (err ERR-WRONG-FT-OUT))
-        (asserts! (>= ubtc-out min-out) (err ERR-SLIPPAGE))
-        (try! (ft-transfer? PIZZA amount-in sender dex-contract))
-        (try! (contract-call? ft-out transfer royal-amt sender (var-get contract-owner) none))
-    (print {
-        type: "sell",
-        sender: sender,
-        token-in: SELF,
-        amount-in: amount-in,
-        token-out: ft-out,
-        amount-out: ubtc-out,
-        royalty: royal-amt,
-        dex-contract: dex-contract })
-    (ok ubtc-out))
-)
+;; (define-public (sell
+;;     (amount-in uint)
+;;     (ft-in <token-trait>)
+;;     (sender principal)
+;;     (recipient <dex-trait>) 
+;;     (min-amount-out (optional uint))
+;;     (ft-out <token-trait>))
+;;     (let ((dex-contract (contract-of recipient))
+;;           (info (try! (contract-call? recipient sell ft-in amount-in))) 
+;;           (ubtc-out (get ubtc-out info))
+;;           (ft-contract-out (get ft info))
+;;           (min-out (default-to u0 min-amount-out))
+;;           (royal-amt (/ (* ubtc-out ROYALTY) PRECISION)))
+;;         ;; here we maintain an allow list of dexes / pools 
+;;         ;; any dex / pool can allow itself if they pass contract-hash? verification
+;;         (asserts! (is-eq tx-sender sender) (err ERR-NOT-AUTHORIZED))
+;;         (asserts! (is-eq (contract-of ft-in) SELF) (err ERR-WRONG-FT-OUT))
+;;         (asserts! (is-eq (contract-of ft-out) ft-contract-out) (err ERR-WRONG-FT-OUT))
+;;         (asserts! (>= ubtc-out min-out) (err ERR-SLIPPAGE))
+;;         (try! (ft-transfer? PIZZA amount-in sender dex-contract))
+;;         (try! (contract-call? ft-out transfer royal-amt sender (var-get contract-owner) none))
+;;     (print {
+;;         type: "sell",
+;;         sender: sender,
+;;         token-in: SELF,
+;;         amount-in: amount-in,
+;;         token-out: ft-out,
+;;         amount-out: ubtc-out,
+;;         royalty: royal-amt,
+;;         dex-contract: dex-contract })
+;;     (ok ubtc-out))
+;; )
 
 ;; Bitflow support -> if callable from Bitflow core requires new token trait!
+;; this works for Faktory DEX
 (define-public (pay-royalty (amount-in uint) (amount-out uint) (ft-out <token-trait>)) 
     (let ((royal-amt (/ (* amount-out ROYALTY) PRECISION))) 
-                ;; here we maintain an allow list of dexes / pools 
+        ;; we add in the allow list of transfers the xyk-core which calls pay-royalty
         ;; any dex / pool can allow itself if they pass contract-hash? verification
+        ;; this works with faktory pool but requires varializing traits x and y for contract-hash? easiness
+        (if (> royal-amt u0) 
         (try! (contract-call? ft-out transfer royal-amt tx-sender (var-get contract-owner) none))
+        true)
         (print {
             type: "sell",
             sender: tx-sender,
@@ -187,6 +191,8 @@
     (ok (map-set approved-recipients recipient true))
   )
 )
+;; instead of the above, we allow auto-approve-recipient with contract-hash
+;; Bitflow -> pool-contract if core-v2 respects royalty payment -> only has 2 variables constant to be data-var 'd
 
 (define-public (revoke-recipient (recipient principal))
   (begin
